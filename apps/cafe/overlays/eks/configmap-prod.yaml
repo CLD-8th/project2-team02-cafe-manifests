@@ -5,6 +5,8 @@ metadata:
 data:
   SPRING_PROFILES_ACTIVE: prod
   # TODO: data 루트 출력 rds_endpoint (호스트 이름만)
-  DB_URL: jdbc:mysql://team02-dev-rds.xxxxxxxxxxxx.ap-northeast-2.rds.amazonaws.com:3306/cafe?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+  DB_URL: jdbc:mysql://team02-dev-rds.cvm8ggku2f6x.ap-northeast-2.rds.amazonaws.com:3306/cafe?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
   DDL_AUTO: update
   SPRING_DATASOURCE_HIKARI_MAXIMUMPOOLSIZE: "5"   # Pod 최대 4개 × 5 = 20 연결 (db.t4g.micro 여유 안)
+  APP_S3_BUCKET: team02-dev-images-20261113
+  AWS_REGION: ap-northeast-2
