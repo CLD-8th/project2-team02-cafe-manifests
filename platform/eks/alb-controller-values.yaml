@@ -1,6 +1,6 @@
 clusterName: team02-dev-eks
 region: ap-northeast-2
-vpcId: vpc-XXXXXXXXXXXXXXXXX   # TODO: network 루트 출력 vpc_id
+vpcId: vpc-0d380a7ca5b762e7a   # TODO: network 루트 출력 vpc_id
 
 serviceAccount:
   create: true
@@ -14,7 +14,7 @@ enableShield: false
 
 # 컨트롤러가 만드는 모든 AWS 리소스(ALB · Target Group · 보안 그룹)에 붙음
 defaultTags:
-  Owner: xxx00   # TODO: 학번
+  Owner: hjm25   # TODO: 학번
   Team: "22"
   Environment: dev
   Project: cafe
