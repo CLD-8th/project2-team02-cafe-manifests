@@ -11,7 +11,7 @@ metadata:
 spec:
   description: cafe 앱 — 매니페스트 저장소 · cafe Namespace 만
   sourceRepos:
-    - git@github.com:CLD-8th/project2-team02-cafe-manifests.git
+    - https://github.com/CLD-8th/project2-team02-cafe-manifests.git
   destinations:
     - server: https://kubernetes.default.svc
       namespace: cafe

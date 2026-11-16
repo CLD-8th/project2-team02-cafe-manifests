@@ -14,7 +14,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: git@github.com:CLD-8th/project2-team02-cafe-manifests.git
+    repoURL: https://github.com/CLD-8th/project2-team02-cafe-manifests.git
     targetRevision: main
     path: platform/eks/storage
   destination:
