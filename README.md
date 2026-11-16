@@ -31,7 +31,7 @@ apps/cafe/overlays/eks       Namespace · SA · ExternalSecret · Ingress · HPA
 
 ```bash
 aws eks update-kubeconfig --region ap-northeast-2 --name team02-dev-eks
-ARGOCD_VERSION=<강의 버전>
+ARGOCD_VERSION=v3.5.6   # 강의와 같은 버전 · EKS 1.33~1.36 지원
 kubectl create namespace argocd
 kubectl apply -n argocd --server-side --force-conflicts \
   -f https://raw.githubusercontent.com/argoproj/argo-cd/${ARGOCD_VERSION}/manifests/install.yaml

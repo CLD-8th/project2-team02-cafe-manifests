@@ -1,0 +1,41 @@
+# 팀 앱 — 앱 CI 가 overlays/eks 의 newTag 를 바꾸는 커밋을 올리면 자동 동기화 · 롤링 배포
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cafe
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: apps
+    environment: dev
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: apps
+  source:
+    repoURL: https://github.com/CLD-8th/project2-team02-cafe-manifests.git
+    targetRevision: main
+    path: apps/cafe/overlays/eks
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cafe
+  # Pod 수는 HPA 가 정함 — Git 의 replicas 와 다르다고 되돌리지 않게
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      name: cafe
+      jsonPointers:
+        - /spec/replicas
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true   # kubectl 로 바꾼 값은 Git 기준으로 되돌림
+    syncOptions:
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
