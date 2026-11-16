@@ -1,0 +1,12 @@
+# 노드 축소 · 교체 때도 Pod 1개는 남김
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: cafe
+  labels:
+    app.kubernetes.io/name: cafe
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cafe

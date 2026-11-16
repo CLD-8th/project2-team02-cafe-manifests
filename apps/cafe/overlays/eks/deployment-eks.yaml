@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cafe
+spec:
+  template:
+    spec:
+      serviceAccountName: cafe
+      terminationGracePeriodSeconds: 45
+      containers:
+        - name: app
+          # 목록은 통째로 바뀜 — base 의 configMapRef 도 다시 적음
+          envFrom:
+            - configMapRef:
+                name: cafe-config
+            - secretRef:
+                name: cafe-db    # DB_USERNAME · DB_PASSWORD
+            - secretRef:
+                name: cafe-app   # JWT_SECRET · STAFF_USERNAME · STAFF_PASSWORD
+          resources:
+            requests:
+              cpu: 250m
+              memory: 768Mi
+            limits:
+              memory: 1Gi
+          # ALB 가 대상에서 빼는 동안 기다렸다가 종료 — 롤링 배포 중 502 방지
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: 15

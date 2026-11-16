@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cafe
+  labels:
+    app.kubernetes.io/name: cafe
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'   # ACM 인증서가 생기면 HTTPS 443 추가
+    alb.ingress.kubernetes.io/healthcheck-path: /actuator/health/readiness
+    alb.ingress.kubernetes.io/load-balancer-name: team02-dev-alb   # 32자 제한
+    alb.ingress.kubernetes.io/tags: Owner=xxx00,Team=22,Environment=dev,Project=cafe   # TODO: Owner 학번
+    # 롤링 배포 때 빠지는 Pod 를 빨리 대상에서 뺌 (기본 300초)
+    alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=30
+spec:
+  ingressClassName: alb
+  rules:
+    # host 를 비우면 ALB 주소로 바로 호출 가능 — Route 53 레코드(team02.<domain>)를 만들면 host 추가
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: cafe
+                port:
+                  name: http

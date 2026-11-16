@@ -1,0 +1,48 @@
+# Namespace 범위 권한 분리 — cafe 안에서 조회만 · Secret 은 못 봄 · 다른 Namespace 는 접근 불가
+#
+# 확인 (관리자가 실행 · 허용 / 거부 출력이 결과물)
+#   kubectl auth can-i list pods        -n cafe        --as=system:serviceaccount:cafe:cafe-viewer   # yes
+#   kubectl auth can-i get pods/log     -n cafe        --as=system:serviceaccount:cafe:cafe-viewer   # yes
+#   kubectl auth can-i get secrets      -n cafe        --as=system:serviceaccount:cafe:cafe-viewer   # no
+#   kubectl auth can-i delete deployments -n cafe      --as=system:serviceaccount:cafe:cafe-viewer   # no
+#   kubectl auth can-i list pods        -n kube-system --as=system:serviceaccount:cafe:cafe-viewer   # no
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cafe-viewer
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cafe-viewer
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "services", "endpoints", "configmaps", "events"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cafe-viewer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cafe-viewer
+subjects:
+  - kind: ServiceAccount
+    name: cafe-viewer
+    namespace: cafe
+  # 사람 계정용 — eks 루트 Access Entry 의 kubernetes_groups 에 이 그룹을 넣으면 그 IAM 역할이 이 권한을 받음
+  - kind: Group
+    name: cafe-viewers
+    apiGroup: rbac.authorization.k8s.io
