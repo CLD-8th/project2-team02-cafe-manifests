@@ -21,7 +21,7 @@ spec:
         releaseName: aws-load-balancer-controller
         valueFiles:
           - $values/platform/eks/alb-controller-values.yaml
-    - repoURL: git@github.com:CLD-8th/project2-team02-cafe-manifests.git
+    - repoURL: https://github.com/CLD-8th/project2-team02-cafe-manifests.git
       targetRevision: main
       ref: values
   destination:
