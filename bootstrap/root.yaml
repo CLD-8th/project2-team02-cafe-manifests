@@ -1,0 +1,23 @@
+# app-of-apps — 클러스터에 손으로 apply 하는 것은 이 파일 하나뿐 (Argo CD 설치 직후 한 번)
+#   kubectl apply -f bootstrap/root.yaml
+# 이후 clusters/dev/ 에 Application 을 추가 · 수정 · 삭제하면 Argo CD 가 Git 기준으로 반영
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:CLD-8th/project2-team02-cafe-manifests.git
+    targetRevision: main
+    path: clusters/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

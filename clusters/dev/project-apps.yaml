@@ -1,0 +1,26 @@
+# AppProject apps — 팀 앱이 쓸 수 있는 범위를 좁힘 (이 저장소 · cafe Namespace 만)
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: apps
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"   # Application 보다 먼저
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: cafe 앱 — 매니페스트 저장소 · cafe Namespace 만
+  sourceRepos:
+    - git@github.com:CLD-8th/project2-team02-cafe-manifests.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: cafe
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+  roles:
+    - name: developer
+      description: 앱 조회 · 동기화
+      policies:
+        - p, proj:apps:developer, applications, get,  apps/*, allow
+        - p, proj:apps:developer, applications, sync, apps/cafe, allow

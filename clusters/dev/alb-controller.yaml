@@ -1,0 +1,50 @@
+# ALB Controller — Ingress 를 보고 ALB · Target Group 을 만듦
+# 권한은 Pod Identity (eks 루트가 kube-system/aws-load-balancer-controller 에 역할 연결) → SA 에 annotation 없음
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: aws-load-balancer-controller
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: platform
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"   # 앱(Ingress)보다 먼저
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://aws.github.io/eks-charts
+      chart: aws-load-balancer-controller
+      targetRevision: 3.5.0
+      helm:
+        releaseName: aws-load-balancer-controller
+        valueFiles:
+          - $values/platform/eks/alb-controller-values.yaml
+    - repoURL: git@github.com:CLD-8th/project2-team02-cafe-manifests.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  # 웹훅 인증서는 컨트롤러가 스스로 채움 — Git 과 다르다고 OutOfSync 가 뜨지 않게
+  ignoreDifferences:
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+      jqPathExpressions:
+        - .webhooks[]?.clientConfig.caBundle
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+      jqPathExpressions:
+        - .webhooks[]?.clientConfig.caBundle
+    - kind: Secret
+      name: aws-load-balancer-tls
+      jsonPointers:
+        - /data
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+      - RespectIgnoreDifferences=true
