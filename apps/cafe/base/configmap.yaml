@@ -1,0 +1,11 @@
+# 비밀이 아닌 값만 — 비밀은 overlays/eks 의 ExternalSecret 이 만든 Secret 으로 받음
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cafe-config
+  labels:
+    app.kubernetes.io/name: cafe
+data:
+  SPRING_PROFILES_ACTIVE: local
+  JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75"
+  SERVER_SHUTDOWN: graceful
