@@ -1,0 +1,20 @@
+# gp3 StorageClass — EBS CSI 드라이버 · 기본 StorageClass · Pod 가 배치된 AZ 에 볼륨 생성(WaitForFirstConsumer)
+# tagSpecification_N : 이 클래스로 생기는 EBS 볼륨에 붙는 태그 (교안 — Team 태그를 붙이는 곳)
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+  encrypted: "true"
+  tagSpecification_1: "Team=22"
+  tagSpecification_2: "Project=cafe"
+  tagSpecification_3: "Environment=dev"
+  tagSpecification_4: "ManagedBy=ebs-csi"
+  tagSpecification_5: "Name=team02-dev-ebs-{{ .PVCNamespace }}-{{ .PVCName }}"
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true

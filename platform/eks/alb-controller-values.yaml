@@ -1,0 +1,21 @@
+clusterName: team02-dev-eks
+region: ap-northeast-2
+vpcId: vpc-XXXXXXXXXXXXXXXXX   # TODO: network 루트 출력 vpc_id
+
+serviceAccount:
+  create: true
+  name: aws-load-balancer-controller   # Pod Identity 연결 이름과 같아야 함
+
+replicaCount: 1
+
+enableWaf: false
+enableWafv2: false
+enableShield: false
+
+# 컨트롤러가 만드는 모든 AWS 리소스(ALB · Target Group · 보안 그룹)에 붙음
+defaultTags:
+  Owner: xxx00   # TODO: 학번
+  Team: "22"
+  Environment: dev
+  Project: cafe
+  ManagedBy: argocd
