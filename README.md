@@ -67,3 +67,55 @@ kubectl -n argocd delete application root          # 나머지 (finalizer 로 �
 ```
 
 ALB Controller 가 먼저 지워지면 ALB 가 남아 VPC 삭제가 막힘 — 반드시 cafe → root 순서.
+
+## 06. 알려진 문제
+
+### ALB Controller webhook 인증서 불일치
+
+**증상** — Service 생성이 거부됨 (다른 앱의 Service 까지 전부)
+
+```
+failed calling webhook "mservice.elbv2.k8s.aws": ... x509: certificate signed by unknown authority
+```
+
+**원인** — ALB 차트는 렌더링할 때마다 webhook 인증서를 새로 만듦. Argo CD 는 Helm `lookup` 을 쓰지 않아서
+처음 동기화 중 재시도가 일어나면 Secret `aws-load-balancer-tls` 와 webhook `caBundle` 이 서로 다른 값으로 들어감.
+한 번 짝이 맞게 만들어지면 `ignoreDifferences` + `RespectIgnoreDifferences` 로 유지됨 →
+**ALB Controller 앱을 새로 만들 때(destroy 후 재구축 등)만** 생길 수 있음.
+
+**조치** — Git 수정 없음. 지우고 Argo CD 가 한 번에 다시 만들게 함
+
+```bash
+kubectl delete mutatingwebhookconfiguration aws-load-balancer-webhook
+kubectl delete validatingwebhookconfiguration aws-load-balancer-webhook
+kubectl -n kube-system delete secret aws-load-balancer-tls
+kubectl -n argocd annotate application aws-load-balancer-controller argocd.argoproj.io/refresh=hard --overwrite
+# 위 3개가 다시 생긴 것 확인 후 — 컨트롤러가 새 인증서를 읽게 Pod 만 삭제 (rollout restart 는 Git 과 차이가 생김)
+kubectl -n kube-system delete pod -l app.kubernetes.io/name=aws-load-balancer-controller
+# 확인 — service/webhook-test 가 나오면 정상 (실제로 만들지 않음)
+kubectl -n default create service clusterip webhook-test --tcp=80:80 --dry-run=server -o name
+```
+
+막혀 있던 앱(external-secrets · secret-store 등)은 재시도가 끝났으면 아래 수동 동기화로 다시 맞춤.
+
+### 수동 동기화는 syncOptions 를 함께 넘김
+
+`retry.limit` 을 다 쓴 앱은 같은 커밋에 대해 자동으로 다시 시도하지 않음 → 수동 동기화 필요.
+수동 동기화는 앱에 적힌 `syncOptions` 를 따라가지 않으므로 **꼭 필요한 옵션은 같이 넘김**.
+빠지면 ESO 처럼 CRD 가 큰 앱은 `metadata.annotations: Too long` 으로 실패함.
+
+```bash
+# external-secrets — ServerSideApply 필수
+kubectl -n argocd patch application external-secrets --type merge \
+  -p '{"operation":{"initiatedBy":{"username":"admin"},"sync":{"syncOptions":["CreateNamespace=true","ServerSideApply=true"]}}}'
+
+# 옵션이 없는 앱 (secret-store · storage 등)
+kubectl -n argocd patch application <앱 이름> --type merge \
+  -p '{"operation":{"initiatedBy":{"username":"admin"},"sync":{}}}'
+
+# 결과 — Succeeded  Synced  Healthy
+kubectl -n argocd get application <앱 이름> \
+  -o jsonpath='{.status.operationState.phase}{"  "}{.status.sync.status}{"  "}{.status.health.status}{"\n"}'
+```
+
+화면에서 할 때는 SYNC → SYNC OPTIONS 에서 앱과 같은 옵션(예: Server-Side Apply)을 체크하고 SYNCHRONIZE.
