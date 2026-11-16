@@ -1,0 +1,21 @@
+# metrics-server 는 EKS 애드온(Terraform)으로 설치됨
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: cafe
+  labels:
+    app.kubernetes.io/name: cafe
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: cafe
+  minReplicas: 2
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60
