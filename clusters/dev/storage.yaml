@@ -1,0 +1,25 @@
+# gp3 StorageClass — EBS CSI 가 만드는 볼륨(Prometheus 디스크 등)에 Team 태그를 붙이는 곳
+# 강의에서는 kube-prometheus-stack 앱이 함께 동기화했음 — 모니터링을 붙이기 전이라 따로 둠
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: storage
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: platform
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:CLD-8th/project2-team02-cafe-manifests.git
+    targetRevision: main
+    path: platform/eks/storage
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
