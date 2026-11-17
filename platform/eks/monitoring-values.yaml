@@ -1,0 +1,94 @@
+# kube-prometheus-stack 92.22.0 values — t3.medium 노드에 맞춰 작게
+
+# EKS 가 관리해서 지표를 볼 수 없는 컨트롤 플레인 구성 요소 — 끄지 않으면 Target down 경보가 계속 울림
+kubeEtcd:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false
+
+defaultRules:
+  rules:
+    etcd: false
+    kubeControllerManager: false
+    kubeSchedulerAlerting: false
+    kubeSchedulerRecording: false
+    kubeProxy: false
+
+prometheus:
+  prometheusSpec:
+    # cafe Namespace 의 ServiceMonitor · PrometheusRule 도 읽음 (release 라벨이 없어도)
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    retention: 3d
+    retentionSize: 8GB
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        memory: 1536Mi
+    # gp3 기본 StorageClass — 암호화 · Team 태그 (platform/eks/storage)
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
+
+alertmanager:
+  alertmanagerSpec:
+    # Slack Webhook — ESO 가 만든 Secret 을 /etc/alertmanager/secrets/alertmanager-slack/ 에 마운트
+    # 경보 라우팅(config)은 A 단계에서 api_url_file 로 이 파일을 읽게 함 — URL 을 values 에 쓰지 않음
+    secrets:
+      - alertmanager-slack
+    resources:
+      requests:
+        cpu: 20m
+        memory: 64Mi
+      limits:
+        memory: 128Mi
+
+grafana:
+  admin:
+    existingSecret: grafana-admin   # ESO 가 만든 Secret
+    userKey: admin-user
+    passwordKey: admin-password
+  persistence:
+    enabled: false   # 대시보드는 사이드카가 ConfigMap 으로 다시 만듦
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+
+prometheusOperator:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
+
+kube-state-metrics:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      memory: 128Mi
+
+prometheus-node-exporter:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 32Mi
+    limits:
+      memory: 64Mi
