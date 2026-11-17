@@ -7,7 +7,11 @@ metadata:
   annotations:
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'   # ACM 인증서가 생기면 HTTPS 443 추가
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    # ACM 인증서 www.team02.cldlab.click (서울) — HTTPS 는 ALB 에서 종료, 안쪽은 HTTP
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-northeast-2:461483516702:certificate/595b829d-eb02-44ee-af5e-9e6e29ee70d0
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
+    alb.ingress.kubernetes.io/ssl-redirect: '443'   # HTTP 80 → HTTPS 301
     alb.ingress.kubernetes.io/healthcheck-path: /actuator/health/readiness
     alb.ingress.kubernetes.io/load-balancer-name: team02-dev-alb   # 32자 제한
     alb.ingress.kubernetes.io/tags: Owner=jjj16,Team=22,Environment=dev,Project=cafe   # TODO: Owner 학번
@@ -16,7 +20,7 @@ metadata:
 spec:
   ingressClassName: alb
   rules:
-    # host 를 비우면 ALB 주소로 바로 호출 가능 — Route 53 레코드(team02.<domain>)를 만들면 host 추가
+    # host 를 비우면 ALB 주소로도 호출 가능 — Route 53 www.team02.cldlab.click 이 이 ALB 를 가리킴
     - http:
         paths:
           - path: /
