@@ -12,6 +12,7 @@ resources:
   - hpa.yaml
   - pdb.yaml
   - rbac.yaml
+  - service-monitor.yaml
 
 labels:
   - includeSelectors: false
