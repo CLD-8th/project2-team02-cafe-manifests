@@ -10,10 +10,6 @@ spec:
       containers:
         - name: app
           # 목록은 통째로 바뀜 — base 의 configMapRef 도 다시 적음
-          # [장애 시나리오] 존재하지 않는 DB 주소 — envFrom 보다 env 가 우선 → 새 Pod 기동 실패
-          env:
-            - name: DB_URL
-              value: jdbc:mysql://team02-wrong-db.invalid:3306/cafe
           envFrom:
             - configMapRef:
                 name: cafe-config
