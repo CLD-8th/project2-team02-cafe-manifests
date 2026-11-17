@@ -1,0 +1,34 @@
+# 경보 규칙(PrometheusRule) — 모니터링 스택(CRD · Prometheus)이 먼저 떠야 하므로 wave 1
+# SkipDryRunOnMissingResource: 스택 설치 전 CRD 가 없어도 이 앱 때문에 전체 동기화가 막히지 않게 함
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring-rules
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: platform
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/CLD-8th/project2-team02-cafe-manifests.git
+    targetRevision: main
+    path: platform/eks/monitoring-rules
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - SkipDryRunOnMissingResource=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m
