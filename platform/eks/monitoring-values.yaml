@@ -62,12 +62,13 @@ grafana:
     passwordKey: admin-password
   persistence:
     enabled: false   # 대시보드는 사이드카가 ConfigMap 으로 다시 만듦
+  # 256Mi 에서 시작 중 OOMKilled(exit 137) — Grafana 12 는 기동 때 메모리를 더 씀
   resources:
     requests:
       cpu: 50m
-      memory: 128Mi
-    limits:
       memory: 256Mi
+    limits:
+      memory: 512Mi
 
 prometheusOperator:
   resources:
