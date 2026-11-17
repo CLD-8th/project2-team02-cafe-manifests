@@ -43,6 +43,32 @@ prometheus:
               storage: 10Gi
 
 alertmanager:
+  # 경보 라우팅 — 우리 팀 규칙(team=team02)만 Slack 으로, 차트 기본 경보는 버림
+  # Webhook URL 은 위 secrets 로 마운트된 파일에서만 읽음 (저장소 · values 에 URL 없음)
+  config:
+    global:
+      resolve_timeout: 5m
+      slack_api_url_file: /etc/alertmanager/secrets/alertmanager-slack/slack-webhook-url
+    route:
+      receiver: "null"
+      group_by: [alertname, namespace]
+      group_wait: 30s
+      group_interval: 2m
+      repeat_interval: 1h
+      routes:
+        - receiver: slack-cafe
+          matchers:
+            - team="team02"
+    receivers:
+      - name: "null"
+      - name: slack-cafe
+        slack_configs:
+          - send_resolved: true
+            title: '[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
+            text: |-
+              {{ range .Alerts }}• *{{ .Labels.severity }}* {{ .Annotations.summary }}
+              {{ .Annotations.description }}
+              {{ end }}
   alertmanagerSpec:
     # Slack Webhook — ESO 가 만든 Secret 을 /etc/alertmanager/secrets/alertmanager-slack/ 에 마운트
     # 경보 라우팅(config)은 A 단계에서 api_url_file 로 이 파일을 읽게 함 — URL 을 values 에 쓰지 않음
