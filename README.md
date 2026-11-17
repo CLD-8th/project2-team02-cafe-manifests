@@ -31,7 +31,7 @@ apps/cafe/overlays/eks       Namespace · SA · ExternalSecret · Ingress · HPA
 
 ```bash
 aws eks update-kubeconfig --region ap-northeast-2 --name team02-dev-eks
-ARGOCD_VERSION=<강의 버전>
+ARGOCD_VERSION=v3.5.6   # 강의와 같은 버전 · EKS 1.33~1.36 지원
 kubectl create namespace argocd
 kubectl apply -n argocd --server-side --force-conflicts \
   -f https://raw.githubusercontent.com/argoproj/argo-cd/${ARGOCD_VERSION}/manifests/install.yaml
@@ -51,12 +51,21 @@ kubectl apply -f bootstrap/root.yaml      # 이후는 전부 Git
 
 ## 04. Self Heal 확인
 
+Git 에 **있는 값**을 클러스터에서 직접 바꾸면 Argo CD 가 바로 되돌림 (실시간 감시 · 1~2초).
+
 ```bash
-kubectl -n cafe set env deploy/cafe DEMO=drift     # Git 에 없는 값 → 잠시 뒤 사라짐
-kubectl -n cafe delete svc cafe                    # 지운 리소스 → 다시 생김
+kubectl -n cafe patch cm cafe-config --type merge -p '{"data":{"DDL_AUTO":"drift"}}'
+kubectl -n cafe get cm cafe-config -o jsonpath='{.data.DDL_AUTO}'; echo     # 이미 update 로 복원
+# 증거 — 자동 동기화 · 부분 동기화 이벤트
+kubectl -n argocd get events --field-selector involvedObject.name=cafe --sort-by=.lastTimestamp | tail -4
 ```
 
-replicas 는 HPA 가 정하므로 `ignoreDifferences` — `kubectl scale` 은 Self Heal 시연에 쓰지 않음.
+화면 : cafe 앱 아이콘 클릭 → **EVENTS** (`Synced -> OutOfSync` → `Initiated automated sync` → `Partial sync … succeeded` → `OutOfSync -> Synced`).
+부분 동기화라 HISTORY AND ROLLBACK 에는 남지 않음. 이벤트는 약 1시간 뒤 사라지니 바로 캡처.
+
+주의
+- Git 에 **없는 필드를 추가**(예 : `kubectl set env … DEMO=x`)하면 Argo CD 가 관리하지 않는 필드라 되돌리지 않고 Synced 유지 → 시연에 쓰지 않음. 추가했다면 직접 제거(`kubectl set env deploy/cafe DEMO-`)
+- replicas 는 HPA 가 정하므로 `ignoreDifferences` — `kubectl scale` 도 시연에 쓰지 않음
 
 ## 05. 내릴 때 (terraform destroy 전)
 

@@ -1,0 +1,69 @@
+# cafe 앱 경보 규칙 — Prometheus Operator 가 읽어 Prometheus 에 등록
+# 지표 출처: 앱 /actuator/prometheus (ServiceMonitor) · kube-state-metrics (재시작 · HPA)
+# /actuator/** (헬스 체크 · 지표 수집 요청)는 사용자 요청이 아니므로 제외
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: cafe-alerts
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/part-of: monitoring
+spec:
+  groups:
+    - name: cafe.golden-signals
+      rules:
+        # 오류율 — 5xx 응답이 전체 요청의 5% 초과가 2분 지속
+        - alert: CafeHighErrorRate
+          expr: |
+            sum(rate(http_server_requests_seconds_count{namespace="cafe", uri!~"/actuator.*", status=~"5.."}[2m]))
+              /
+            sum(rate(http_server_requests_seconds_count{namespace="cafe", uri!~"/actuator.*"}[2m]))
+              > 0.05
+          for: 2m
+          labels:
+            severity: critical
+            team: team02
+          annotations:
+            summary: "cafe 5xx 오류율 {{ $value | humanizePercentage }}"
+            description: "최근 2분 동안 5xx 응답 비율이 5%를 넘었음. kubectl logs -n cafe -l app.kubernetes.io/name=cafe 로 오류 확인"
+
+        # 응답 시간 — p95 가 1초 초과가 2분 지속
+        - alert: CafeHighLatency
+          expr: |
+            histogram_quantile(0.95,
+              sum by (le) (rate(http_server_requests_seconds_bucket{namespace="cafe", uri!~"/actuator.*"}[2m]))
+            ) > 1
+          for: 2m
+          labels:
+            severity: warning
+            team: team02
+          annotations:
+            summary: "cafe 응답 시간 p95 {{ $value | humanizeDuration }}"
+            description: "최근 2분 p95 응답 시간이 1초를 넘었음. 부하 · DB 연결 · Pod 자원 확인"
+
+    - name: cafe.workload
+      rules:
+        # 재시작 — 5분 안에 컨테이너 재시작 발생
+        - alert: CafePodRestarting
+          expr: increase(kube_pod_container_status_restarts_total{namespace="cafe"}[5m]) > 0
+          for: 0m
+          labels:
+            severity: warning
+            team: team02
+          annotations:
+            summary: "cafe Pod {{ $labels.pod }} 재시작"
+            description: "5분 안에 컨테이너가 재시작됨. kubectl describe pod · kubectl logs --previous 로 원인 확인"
+
+        # 포화 — HPA 가 최대 Pod 수에 도달한 상태가 2분 지속 (더 늘릴 여유 없음)
+        - alert: CafeHpaMaxedOut
+          expr: |
+            kube_horizontalpodautoscaler_status_current_replicas{namespace="cafe", horizontalpodautoscaler="cafe"}
+              >=
+            kube_horizontalpodautoscaler_spec_max_replicas{namespace="cafe", horizontalpodautoscaler="cafe"}
+          for: 2m
+          labels:
+            severity: warning
+            team: team02
+          annotations:
+            summary: "cafe HPA 최대치({{ $value }}개) 도달"
+            description: "HPA 가 maxReplicas 에 도달함. Pending Pod · 노드 자원 확인"

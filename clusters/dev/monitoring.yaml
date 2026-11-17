@@ -1,0 +1,38 @@
+# kube-prometheus-stack — Prometheus · Alertmanager · Grafana (monitoring Namespace · 아키텍처 그대로)
+# 비밀(Grafana 관리자 · Slack Webhook)은 Secrets Manager team02/dev/monitoring → ESO → Secret (저장소에 비밀 없음)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: monitoring
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: platform
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      targetRevision: 92.22.0
+      helm:
+        releaseName: kube-prometheus-stack
+        valueFiles:
+          - $values/platform/eks/monitoring-values.yaml
+    - repoURL: https://github.com/CLD-8th/project2-team02-cafe-manifests.git
+      targetRevision: main
+      ref: values
+    # ExternalSecret (grafana-admin · alertmanager-slack)
+    - repoURL: https://github.com/CLD-8th/project2-team02-cafe-manifests.git
+      targetRevision: main
+      path: platform/eks/monitoring
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true   # CRD 가 커서 일반 apply 는 annotations Too long 으로 실패
