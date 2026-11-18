@@ -17,12 +17,24 @@ metadata:
     alb.ingress.kubernetes.io/tags: Owner=jjj16,Team=22,Environment=dev,Project=cafe   # TODO: Owner 학번
     # 롤링 배포 때 빠지는 Pod 를 빨리 대상에서 뺌 (기본 300초)
     alb.ingress.kubernetes.io/target-group-attributes: deregistration_delay.timeout_seconds=30
+    # /actuator/** 는 외부에 내보내지 않음 — ALB 에서 바로 404 로 응답 (앱까지 안 감)
+    # ALB 대상 헬스 체크 · Prometheus 수집(ServiceMonitor) 은 Pod 로 직접 가므로 영향 없음
+    alb.ingress.kubernetes.io/actions.block-actuator: >
+      {"type":"fixed-response","fixedResponseConfig":{"contentType":"text/plain","statusCode":"404","messageBody":"Not Found"}}
 spec:
   ingressClassName: alb
   rules:
     # host 를 비우면 ALB 주소로도 호출 가능 — Route 53 www.team02.cldlab.click 이 이 ALB 를 가리킴
     - http:
         paths:
+          # 규칙은 위에서부터 적용되므로 / 보다 먼저 둠
+          - path: /actuator
+            pathType: Prefix
+            backend:
+              service:
+                name: block-actuator
+                port:
+                  name: use-annotation
           - path: /
             pathType: Prefix
             backend:
