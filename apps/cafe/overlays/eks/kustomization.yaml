@@ -24,7 +24,7 @@ labels:
 images:
   - name: cafe
     newName: 461483516702.dkr.ecr.ap-northeast-2.amazonaws.com/team02/cafe   # TODO: foundation 출력 ecr_repository_url
-    newTag: "b034367"
+    newTag: "4b13d57"
 
 patches:
   - path: configmap-prod.yaml
